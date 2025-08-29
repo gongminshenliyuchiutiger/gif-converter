@@ -1,16 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
     const imageUpload = document.getElementById('imageUpload');
     const previewArea = document.getElementById('previewArea');
-    const emptyMessage = document.getElementById('emptyMessage'); // 新增空狀態提示
-    const frameDurationInput = document.getElementById('frameDuration');
-    const gifRepeatInput = document.getElementById('gifRepeat');
+    const emptyMessage = document.getElementById('emptyMessage');
+    const batchFrameDurationInput = document.getElementById('batchFrameDuration');
+    const applyBatchDurationBtn = document.getElementById('applyBatchDurationBtn');
+    const gifRepeatOptions = document.querySelectorAll('.repeat-option-button');
+    const gifRepeatCustomInput = document.getElementById('gifRepeatCustomInput');
+    const gifRepeatValueHiddenInput = document.getElementById('gifRepeatValue'); // 儲存實際重複次數
     const createGifBtn = document.getElementById('createGifBtn');
     const generatedGif = document.getElementById('generatedGif');
     const downloadGif = document.getElementById('downloadGif');
     const loadingIndicator = document.getElementById('loadingIndicator');
     const clearImagesBtn = document.getElementById('clearImagesBtn');
+    const mascot = document.getElementById('mascot');
 
-    // 儲存圖片數據：{ id: uniqueId, file: File, dataURL: string }
+    // 儲存圖片數據：{ id: uniqueId, file: File, dataURL: string, duration: number }
     let uploadedFilesData = []; 
     let draggedItem = null; // 拖曳中的圖片元素
 
@@ -21,7 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (uploadedFilesData.length === 0) {
             emptyMessage.style.display = 'block';
             clearImagesBtn.style.display = 'none';
-            previewArea.appendChild(emptyMessage);
+            // 將 emptyMessage 重新添加到 previewArea，確保它始終存在
+            if (!previewArea.contains(emptyMessage)) {
+                 previewArea.appendChild(emptyMessage);
+            }
             return;
         }
 
@@ -36,31 +43,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const img = document.createElement('img');
             img.src = item.dataURL;
-            img.alt = `圖片 ${item.id}`; // 使用 ID 作為 alt
+            img.alt = `圖片 ${item.id}`; 
 
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-button';
-            deleteBtn.innerHTML = '&times;';
+            deleteBtn.innerHTML = '<i class="fas fa-times"></i>'; // 使用 Font Awesome 圖標
             deleteBtn.onclick = (event) => {
                 event.stopPropagation(); // 阻止事件冒泡到父層的拖曳事件
                 removeImage(item.id); // 根據 ID 移除圖片
             };
 
+            const durationInput = document.createElement('input');
+            durationInput.type = 'number';
+            durationInput.className = 'item-duration-input';
+            durationInput.value = item.duration;
+            durationInput.min = '50';
+            durationInput.step = '50';
+            durationInput.title = '每幀持續時間 (毫秒)'; // 提示文字
+            durationInput.addEventListener('change', (e) => {
+                const newDuration = parseInt(e.target.value, 10);
+                if (!isNaN(newDuration) && newDuration >= 50) {
+                    item.duration = newDuration;
+                } else {
+                    e.target.value = item.duration; // 如果無效則恢復原值
+                    alert('每幀持續時間必須是至少50毫秒的有效數字。');
+                }
+            });
+
             previewItem.appendChild(img);
             previewItem.appendChild(deleteBtn);
+            previewItem.appendChild(durationInput);
             previewArea.appendChild(previewItem);
         });
     }
 
     // 處理新上傳的圖片
     async function handleNewFiles(files) {
+        // 從批次設定獲取預設持續時間
+        const defaultDuration = parseInt(batchFrameDurationInput.value, 10); 
         for (const file of files) {
             if (file.type.startsWith('image/')) {
                 const dataURL = await readFileAsDataURL(file);
                 uploadedFilesData.push({
                     id: Date.now() + Math.random(), // 簡單的唯一 ID
                     file: file,
-                    dataURL: dataURL
+                    dataURL: dataURL,
+                    duration: defaultDuration // 使用預設持續時間
                 });
             }
         }
@@ -69,9 +97,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 讀取檔案為 Data URL 的 Promise 封裝
     function readFileAsDataURL(file) {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(e);
             reader.readAsDataURL(file);
         });
     }
@@ -89,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         event.target.value = null; // 清空 input 讓使用者可以重複上傳相同檔案
     });
 
-    // 拖曳上傳功能
+    // 拖曳上傳功能 (對 previewArea 的 drop)
     previewArea.addEventListener('dragover', (e) => {
         e.preventDefault(); // 允許放置
         e.stopPropagation(); // 阻止事件向上傳播
@@ -106,14 +135,16 @@ document.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation();
         previewArea.classList.remove('drag-over');
 
-        const files = Array.from(e.dataTransfer.files);
-        if (files.length > 0) {
+        // 檢查是否是拖曳檔案而不是內部元素
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const files = Array.from(e.dataTransfer.files);
             await handleNewFiles(files);
         }
     });
 
     // 拖曳排序功能 (事件委派)
     previewArea.addEventListener('dragstart', (e) => {
+        // 確保拖曳的是預覽項目本身，而不是內部的圖片或輸入框
         if (e.target.classList.contains('preview-item')) {
             draggedItem = e.target;
             e.dataTransfer.effectAllowed = 'move';
@@ -121,20 +152,27 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 e.target.classList.add('dragging');
             }, 0); 
+        } else {
+            e.preventDefault(); // 阻止非預覽項目被拖曳
         }
     });
 
     previewArea.addEventListener('dragover', (e) => {
         e.preventDefault();
-        // 確保不是拖曳自身，且目標是預覽項目
-        if (draggedItem && e.target.closest('.preview-item') && e.target.closest('.preview-item') !== draggedItem) {
+        // 確保有被拖曳的項目，且目標是另一個預覽項目
+        if (draggedItem && draggedItem !== e.target && e.target.closest('.preview-item')) {
             const targetItem = e.target.closest('.preview-item');
-            const boundingBox = targetItem.getBoundingClientRect();
-            const offset = boundingBox.x + (boundingBox.width / 2);
-            if (e.clientX > offset) {
-                previewArea.insertBefore(draggedItem, targetItem.nextSibling);
-            } else {
-                previewArea.insertBefore(draggedItem, targetItem);
+            if (targetItem && targetItem !== draggedItem) { // 確保目標不是拖曳中的自己
+                const boundingBox = targetItem.getBoundingClientRect();
+                // 判斷滑鼠是在目標元素左半邊還是右半邊
+                const offset = boundingBox.x + (boundingBox.width / 2);
+                if (e.clientX > offset) {
+                    // 滑鼠在目標元素右側，插入到目標元素之後
+                    previewArea.insertBefore(draggedItem, targetItem.nextSibling);
+                } else {
+                    // 滑鼠在目標元素左側，插入到目標元素之前
+                    previewArea.insertBefore(draggedItem, targetItem);
+                }
             }
         }
     });
@@ -150,15 +188,17 @@ document.addEventListener('DOMContentLoaded', () => {
         Array.from(previewArea.children).forEach(domItem => {
             // 確保不是空消息元素
             if (domItem.classList.contains('preview-item')) { 
-                const fileId = domItem.dataset.fileId;
-                const originalItem = uploadedFilesData.find(item => item.id == fileId);
+                const fileId = parseFloat(domItem.dataset.fileId); // 使用 parseFloat for consistency with Date.now()
+                const originalItem = uploadedFilesData.find(item => item.id === fileId);
                 if (originalItem) {
                     newOrderedFilesData.push(originalItem);
                 }
             }
         });
         uploadedFilesData = newOrderedFilesData;
-        // 不需重新 renderPreview，因為 DOM 順序已正確
+        // 注意：這裡不重新 renderPreview，因為 DOM 已經被拖曳操作改變，
+        // 重新渲染會導致視覺閃爍並破壞拖曳體驗。
+        // 資料模型已更新，下次調用 renderPreview 時會是正確順序。
     });
     
     // 清除所有圖片
@@ -170,6 +210,53 @@ document.addEventListener('DOMContentLoaded', () => {
             downloadGif.style.display = 'none';
         }
     });
+
+    // 批次應用時間
+    applyBatchDurationBtn.addEventListener('click', () => {
+        const batchDuration = parseInt(batchFrameDurationInput.value, 10);
+        if (isNaN(batchDuration) || batchDuration < 50) {
+            alert('批次設定的時間必須是至少50毫秒的有效數字。');
+            return;
+        }
+
+        if (uploadedFilesData.length === 0) {
+            alert('沒有圖片可以應用批次設定。');
+            return;
+        }
+
+        uploadedFilesData.forEach(item => {
+            item.duration = batchDuration;
+        });
+        renderPreview(); // 重新渲染以更新所有圖片上的時間輸入框
+    });
+
+    // GIF 重複選項按鈕邏輯
+    gifRepeatOptions.forEach(button => {
+        button.addEventListener('click', () => {
+            gifRepeatOptions.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+
+            if (button.dataset.repeatCustom !== undefined) {
+                gifRepeatCustomInput.disabled = false;
+                gifRepeatValueHiddenInput.value = gifRepeatCustomInput.value;
+            } else {
+                gifRepeatCustomInput.disabled = true;
+                gifRepeatValueHiddenInput.value = button.dataset.repeat;
+            }
+        });
+    });
+
+    gifRepeatCustomInput.addEventListener('change', () => {
+        const customValue = parseInt(gifRepeatCustomInput.value, 10);
+        if (isNaN(customValue) || customValue < 1) {
+            alert('重複次數必須是至少1次的有效數字。');
+            gifRepeatCustomInput.value = 1; // 恢復預設值
+            gifRepeatValueHiddenInput.value = 1;
+        } else {
+            gifRepeatValueHiddenInput.value = customValue;
+        }
+    });
+
 
     // 生成 GIF
     createGifBtn.addEventListener('click', async () => {
@@ -183,14 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingIndicator.style.display = 'flex'; // 顯示載入指示器
         loadingIndicator.textContent = '正在生成 GIF...'; // 重置文本
 
-        const duration = parseInt(frameDurationInput.value, 10);
-        const repeat = parseInt(gifRepeatInput.value, 10);
-
-        if (isNaN(duration) || duration < 50) {
-            alert('每幀持續時間必須是至少50毫秒的有效數字。');
-            loadingIndicator.style.display = 'none';
-            return;
-        }
+        const repeat = parseInt(gifRepeatValueHiddenInput.value, 10);
 
         const gif = new GIF({
             workers: 2, // 使用兩個 worker
@@ -198,7 +278,8 @@ document.addEventListener('DOMContentLoaded', () => {
             width: 0,    // 稍後根據第一張圖片設定
             height: 0,   // 稍後根據第一張圖片設定
             repeat: repeat, // 0 = infinite, -1 = no repeat, N = repeat N times
-            background: '#fff' // 預設背景色
+            background: '#fff', // 預設背景色
+            workerScript: 'gif.worker.js' // 明確指定 worker 腳本路徑
         });
 
         // 遍歷並添加圖片到 GIF
@@ -214,11 +295,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         gif.options.width = img.naturalWidth;
                         gif.options.height = img.naturalHeight;
                     }
-                    gif.addFrame(img, { delay: duration });
+                    // 使用每張圖片單獨設定的 duration
+                    gif.addFrame(img, { delay: item.duration }); 
                     resolve();
                 };
                 img.onerror = () => {
                     console.error(`圖片加載失敗: ${item.file.name}`);
+                    alert(`圖片 "${item.file.name}" 加載失敗，將跳過此圖片。`);
                     resolve(); // 即使失敗也繼續，避免卡死
                 };
             });
@@ -245,6 +328,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         gif.render();
+    });
+
+    // 吉祥物點擊效果 (confetti)
+    mascot.addEventListener('click', () => {
+        // 從滑鼠點擊位置發射粒子
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.8 }, // 從底部發射
+            colors: ['#a864fd', '#29cdff', '#78ff44', '#ff718d', '#fdff6a'] // 多彩粒子
+        });
     });
 
     // 初始渲染

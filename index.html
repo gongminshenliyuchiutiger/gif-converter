@@ -3,54 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GIF圖檔編程系統</title>
+    <title>GIF圖檔神編成系統</title> <!-- 網站和瀏覽器標題 -->
     <link rel="stylesheet" href="style.css">
+    <!-- Font Awesome 5 Free CDN (圖標庫) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <h1>GIF圖檔編程系統</h1>
+        <h1><i class="fas fa-magic"></i> GIF圖檔神編成系統 <i class="fas fa-magic"></i></h1> <!-- 網站標題 -->
 
-        <div class="input-section">
+        <div class="input-section card">
             <label for="imageUpload" class="upload-button">
-                選擇圖片
+                <i class="fas fa-upload"></i> 選擇圖片
                 <input type="file" id="imageUpload" multiple accept="image/*" style="display: none;">
             </label>
             <p class="hint">可以選擇多張圖片。將圖片拖曳到預覽區，或點擊上方按鈕上傳。</p>
         </div>
 
-        <div class="preview-section">
-            <h2>圖片預覽與排序</h2>
+        <div class="preview-section card">
+            <div class="section-header">
+                <h2><i class="fas fa-images"></i> 圖片預覽與排序</h2>
+                <div class="batch-actions">
+                    <label for="batchFrameDuration"><i class="fas fa-hourglass-half"></i> 批次設定時間 (毫秒):</label>
+                    <input type="number" id="batchFrameDuration" value="200" min="50" step="50">
+                    <button id="applyBatchDurationBtn" class="action-button small-button">應用 <i class="fas fa-check"></i></button>
+                    <p class="hint small-hint">將此時間應用到所有圖片。</p>
+                </div>
+            </div>
+            
             <div id="previewArea" class="preview-grid">
-                <p id="emptyMessage" class="empty-message">請上傳圖片...</p>
+                <p id="emptyMessage" class="empty-message">請上傳圖片以開始編輯...</p>
                 <!-- 上傳的圖片將顯示在這裡，並可以拖曳排序 -->
             </div>
-            <button id="clearImagesBtn" class="action-button secondary-button" style="display: none;">清除所有圖片</button>
+            <!-- 清除所有圖片按鈕的置中容器 -->
+            <div class="button-center-wrapper">
+                <button id="clearImagesBtn" class="action-button secondary-button" style="display: none;">
+                    <i class="fas fa-trash-alt"></i> 清除所有圖片
+                </button>
+            </div>
         </div>
 
-        <div class="settings-section">
-            <h2>GIF 設定</h2>
+        <div class="settings-section card">
+            <h2><i class="fas fa-cog"></i> GIF 全域設定</h2>
             <div class="setting-item">
-                <label for="frameDuration">每幀持續時間 (毫秒):</label>
-                <input type="number" id="frameDuration" value="200" min="50" step="50">
-                <span>數值越小，動畫越快。</span>
+                <label>重複次數:</label>
+                <div class="gif-repeat-options">
+                    <button type="button" class="repeat-option-button active" data-repeat="0">無限重複</button>
+                    <button type="button" class="repeat-option-button" data-repeat="-1">不重複</button>
+                    <div class="repeat-custom-wrapper">
+                        <button type="button" class="repeat-option-button" data-repeat-custom>重複</button>
+                        <input type="number" id="gifRepeatCustomInput" value="1" min="1" disabled>
+                        <span>次</span>
+                    </div>
+                </div>
+                <input type="hidden" id="gifRepeatValue" value="0"> <!-- 實際儲存重複次數的值 -->
             </div>
-            <div class="setting-item">
-                <label for="gifRepeat">重複次數:</label>
-                <input type="number" id="gifRepeat" value="0" min="-1">
-                <span>0為無限重複，-1為不重複，其他數值為重複指定次數。</span>
-            </div>
-            <button id="createGifBtn" class="action-button primary-button">生成 GIF</button>
+            <button id="createGifBtn" class="action-button primary-button">
+                <i class="fas fa-file-gif"></i> 生成 GIF
+            </button>
         </div>
 
-        <div class="output-section">
-            <h2>生成的 GIF</h2>
+        <div class="output-section card">
+            <h2><i class="fas fa-gift"></i> 生成的 GIF</h2>
             <div id="loadingIndicator" class="loading-spinner" style="display: none;">
-                正在生成 GIF...
+                <i class="fas fa-spinner fa-spin"></i> 正在生成 GIF...
             </div>
             <img id="generatedGif" alt="生成的GIF" style="display: none;">
-            <a id="downloadGif" download="my-animated.gif" class="action-button" style="display: none;">下載 GIF</a>
+            <a id="downloadGif" download="my-animated.gif" class="action-button" style="display: none;">
+                <i class="fas fa-download"></i> 下載 GIF
+            </a>
         </div>
     </div>
+
+    <img src="image/LiyuChillGuy.svg" alt="LiyuChillGuy 吉祥物" class="mascot" id="mascot">
 
     <footer>
         <p>Copyright © Liyuchiutiger Gongminshen</p>
@@ -58,6 +83,8 @@
 
     <!-- 引入 gif.js 庫 (從本地文件加載) -->
     <script src="gif.js"></script>
+    <!-- confetti.js for the mascot click effect -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
