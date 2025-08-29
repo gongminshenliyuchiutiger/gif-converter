@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIF圖檔編程系統</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>GIF圖檔編程系統</h1>
+
+        <div class="input-section">
+            <label for="imageUpload" class="upload-button">
+                選擇圖片
+                <input type="file" id="imageUpload" multiple accept="image/*" style="display: none;">
+            </label>
+            <p class="hint">可以選擇多張圖片。將圖片拖曳到預覽區，或點擊上方按鈕上傳。</p>
+        </div>
+
+        <div class="preview-section">
+            <h2>圖片預覽與排序</h2>
+            <div id="previewArea" class="preview-grid">
+                <p id="emptyMessage" class="empty-message">請上傳圖片...</p>
+                <!-- 上傳的圖片將顯示在這裡，並可以拖曳排序 -->
+            </div>
+            <button id="clearImagesBtn" class="action-button secondary-button" style="display: none;">清除所有圖片</button>
+        </div>
+
+        <div class="settings-section">
+            <h2>GIF 設定</h2>
+            <div class="setting-item">
+                <label for="frameDuration">每幀持續時間 (毫秒):</label>
+                <input type="number" id="frameDuration" value="200" min="50" step="50">
+                <span>數值越小，動畫越快。</span>
+            </div>
+            <div class="setting-item">
+                <label for="gifRepeat">重複次數:</label>
+                <input type="number" id="gifRepeat" value="0" min="-1">
+                <span>0為無限重複，-1為不重複，其他數值為重複指定次數。</span>
+            </div>
+            <button id="createGifBtn" class="action-button primary-button">生成 GIF</button>
+        </div>
+
+        <div class="output-section">
+            <h2>生成的 GIF</h2>
+            <div id="loadingIndicator" class="loading-spinner" style="display: none;">
+                正在生成 GIF...
+            </div>
+            <img id="generatedGif" alt="生成的GIF" style="display: none;">
+            <a id="downloadGif" download="my-animated.gif" class="action-button" style="display: none;">下載 GIF</a>
+        </div>
+    </div>
+
+    <footer>
+        <p>Copyright © Liyuchiutiger Gongminshen</p>
+    </footer>
+
+    <!-- 引入 gif.js 庫 (從本地文件加載) -->
+    <script src="gif.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
